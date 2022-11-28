@@ -329,3 +329,24 @@ a:focus {
     list-style-position: inside;
   }
 }
+
+.posts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  width: 100%;
+  margin-top: 40px;
+  padding: 0 20px;
+}
+
+.post {
+  display: flex;
+  flex-direction: column;
+  background-color: rgb(240, 240, 240);
+}
+
+.pagination {
+  display: flex;
+  margin-top: 40px;
+  justify-content: center;
+}

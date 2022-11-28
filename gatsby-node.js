@@ -1,22 +1,59 @@
-/**
- * Implement Gatsby's Node APIs in this file.
- *
- * See: https://www.gatsbyjs.com/docs/reference/config-files/gatsby-node/
- */
-
 const path = require(`path`)
 const { createFilePath } = require(`gatsby-source-filesystem`)
+const createPaginatedPages = require("gatsby-paginate")
 
-// Define the template for blog post
+const makeRequest = (graphql, request) =>
+  new Promise((resolve, reject) => {
+    resolve(
+      graphql(request).then(result => {
+        if (result.errors) {
+          reject(result.errors)
+        }
+
+        return result
+      })
+    )
+  })
+
 const blogPost = path.resolve(`./src/templates/blog-post.js`)
 
 /**
  * @type {import('gatsby').GatsbyNode['createPages']}
  */
 exports.createPages = async ({ graphql, actions, reporter }) => {
-  const { createPage } = actions
-
+  const { createPage, createRedirect } = actions
+  createRedirect({ fromPath: "/index.html", toPath: "/", isPermanent: true })
   // Get all markdown blog posts sorted by date
+  const getPagination = makeRequest(
+    graphql,
+    `
+  {
+    allMarkdownRemark(sort: { frontmatter: { date: DESC } }) {
+      nodes {
+        excerpt
+        id
+        fields {
+          slug
+        }
+        frontmatter {
+          date(formatString: "MMMM DD, YYYY")
+          title
+          description
+        }
+      }
+    }
+  }
+  `
+  ).then(result => {
+    createPaginatedPages({
+      edges: result.data.allMarkdownRemark.nodes,
+      createPage,
+      pageTemplate: "src/templates/template-paginated.js",
+      pageLength: 3,
+      pathPrefix: "blog",
+    })
+  })
+
   const result = await graphql(`
     {
       allMarkdownRemark(sort: { frontmatter: { date: ASC } }, limit: 1000) {
@@ -30,6 +67,14 @@ exports.createPages = async ({ graphql, actions, reporter }) => {
     }
   `)
 
+  if (getPagination.errors) {
+    reporter.panicOnBuild(
+      `There was an error loading your blog posts`,
+      getPagination.errors
+    )
+    return
+  }
+
   if (result.errors) {
     reporter.panicOnBuild(
       `There was an error loading your blog posts`,
@@ -37,12 +82,8 @@ exports.createPages = async ({ graphql, actions, reporter }) => {
     )
     return
   }
-
   const posts = result.data.allMarkdownRemark.nodes
-
-  // Create blog posts pages
-  // But only if there's at least one markdown file found at "content/blog" (defined in gatsby-config.js)
-  // `context` is available in the template as a prop and as a variable in GraphQL
+  // const posts = getPagination.data.allMarkdownRemark.nodes
 
   if (posts.length > 0) {
     posts.forEach((post, index) => {
