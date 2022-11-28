@@ -4,9 +4,11 @@ import { Link, graphql } from "gatsby"
 import Bio from "../components/bio"
 import Layout from "../components/layout"
 import Seo from "../components/seo"
+import { RandomPosts } from "../components/random-posts"
 
 const BlogPostTemplate = ({
-  data: { previous, next, site, markdownRemark: post },
+  // data,
+  data: { previous, next, site, markdownRemark: post, allMarkdownRemark },
   location,
 }) => {
   const siteTitle = site.siteMetadata?.title || `Title`
@@ -31,6 +33,9 @@ const BlogPostTemplate = ({
           <Bio />
         </footer>
       </article>
+
+      <RandomPosts posts={allMarkdownRemark.nodes} />
+
       <nav className="blog-post-nav">
         <ul
           style={{
@@ -107,6 +112,20 @@ export const pageQuery = graphql`
       }
       frontmatter {
         title
+      }
+    }
+    allMarkdownRemark(sort: { frontmatter: { date: DESC } }) {
+      nodes {
+        excerpt
+        id
+        fields {
+          slug
+        }
+        frontmatter {
+          date(formatString: "MMMM DD, YYYY")
+          title
+          description
+        }
       }
     }
   }
